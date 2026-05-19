@@ -1,0 +1,561 @@
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intrusion Detection Dashboard</title>
+<style>
+:root{
+  --color-background-primary:#f4f7fb;
+  --color-background-secondary:#ffffff;
+  --color-background-tertiary:#edf2f8;
+  --color-border-secondary:#dae4ef;
+  --color-border-tertiary:#d7dfe8;
+  --color-text-primary:#172a44;
+  --color-text-secondary:#5f6e85;
+  --color-text-tertiary:#8e9cb3;
+  --border-radius-md:16px;
+  --border-radius-lg:24px;
+  --font-sans:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:#e8f0fb;color:var(--color-text-primary);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;}
+.app{display:flex;min-height:640px;font-size:14px;font-family:var(--font-sans);background:var(--color-background-primary)}
+.sidebar{width:220px;flex-shrink:0;background:var(--color-background-secondary);border-right:1px solid var(--color-border-tertiary);display:flex;flex-direction:column;box-shadow:1px 0 0 rgba(24,79,166,0.06)}
+.sidebar-title{padding:16px;font-size:15px;font-weight:500;color:var(--color-text-primary);border-bottom:0.5px solid var(--color-border-tertiary);line-height:1.3}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:var(--color-text-secondary);border-left:3px solid transparent;cursor:pointer;transition:background 0.12s}
+.nav-item:hover{background:var(--color-background-primary)}
+.nav-item.active{background:var(--color-background-primary);color:#185FA5;border-left-color:#185FA5;font-weight:500}
+.nav-item i{font-size:16px}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.top-bar{display:flex;align-items:center;justify-content:flex-end;padding:10px 20px;border-bottom:0.5px solid var(--color-border-tertiary);gap:12px;flex-shrink:0}
+.logout-btn{font-size:12px;padding:5px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer}
+.avatar{width:30px;height:30px;border-radius:50%;background:#185FA5;color:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500}
+.content{flex:1;padding:20px;overflow-y:auto}
+.page{display:none}
+.page.active{display:block}
+
+.locked-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;gap:14px;text-align:center}
+.lock-icon{font-size:36px;color:var(--color-text-tertiary)}
+.lock-title{font-size:15px;font-weight:500;color:var(--color-text-primary)}
+.lock-sub{font-size:13px;color:var(--color-text-secondary);max-width:260px;line-height:1.6}
+.go-btn{margin-top:4px;padding:8px 20px;font-size:13px;font-weight:500;border-radius:var(--border-radius-md);border:0.5px solid #185FA5;background:#185FA5;color:#E6F1FB;cursor:pointer}
+.go-btn:hover{background:#0C447C}
+
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.metric-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.metric-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em}
+.metric-val{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.metric-sub{font-size:11px;color:var(--color-text-tertiary);margin-top:2px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.rcard{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 16px;margin-bottom:14px}
+.rcard-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin-bottom:12px}
+.attack-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.acard{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px}
+.atype{font-size:10px;color:var(--color-text-secondary);margin-bottom:3px}
+.acount{font-size:18px;font-weight:500;color:var(--color-text-primary)}
+.abar-bg{height:3px;background:var(--color-background-secondary);border-radius:2px;margin-top:6px;overflow:hidden}
+.cm-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cm-cell{border-radius:var(--border-radius-md);padding:12px;text-align:center}
+.cm-lbl{font-size:10px;margin-bottom:3px;opacity:0.85}
+.cm-num{font-size:18px;font-weight:500}
+.rtable{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+.rtable th{text-align:left;padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-secondary);font-weight:500;font-size:10px}
+.rtable td{padding:6px 8px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary)}
+.badge{display:inline-block;padding:2px 8px;border-radius:var(--border-radius-md);font-size:11px;font-weight:500}
+.badge-blue{background:#E6F1FB;color:#0C447C}
+.badge-green{background:#EAF3DE;color:#27500A}
+.badge-amber{background:#FAEEDA;color:#633806}
+.prog-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.prog-lbl{font-size:12px;color:var(--color-text-secondary);width:130px;flex-shrink:0}
+.prog-bg{flex:1;height:6px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px}
+.prog-done{font-size:12px;color:var(--color-text-primary);font-weight:500;width:36px;text-align:right}
+.sec-label{font-size:11px;font-weight:500;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;margin-top:18px}
+.sec-label:first-child{margin-top:0}
+
+.dropzone{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:32px 20px;text-align:center;cursor:pointer;transition:background 0.15s}
+.dropzone.drag-over{background:var(--color-background-secondary)}
+.drop-icon{font-size:28px;color:#185FA5;margin-bottom:8px}
+.drop-text{font-size:13px;color:var(--color-text-secondary)}
+.browse-link{color:#185FA5;cursor:pointer;text-decoration:underline}
+.file-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding:9px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:12px;color:var(--color-text-secondary)}
+.file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary)}
+.done-btn{width:100%;margin-top:14px;padding:10px;font-size:13px;font-weight:500;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:not-allowed;opacity:0.45;transition:all 0.15s}
+.done-btn.ready{background:#185FA5;color:#E6F1FB;border-color:#185FA5;cursor:pointer;opacity:1}
+.done-btn.ready:hover{background:#0C447C}
+.spinner{width:28px;height:28px;border:2.5px solid var(--color-border-tertiary);border-top-color:#185FA5;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.reset-btn{font-size:12px;padding:6px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;margin-bottom:14px}
+.reset-btn:hover{background:var(--color-background-secondary)}
+.file-badge{display:inline-flex;align-items:center;gap:6px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:4px 10px;font-size:12px;color:var(--color-text-secondary);margin-bottom:14px}
+.file-badge i{font-size:13px;color:#185FA5}
+</style>
+</head>
+<body>
+<h2 class="sr-only">Intrusion Detection System dashboard </h2>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-title">Intrusion Detection<br>System</div>
+    <div class="nav-item active" onclick="showPage('home',this)"><i class="ti ti-home" aria-hidden="true"></i> Home</div>
+    <div class="nav-item" onclick="showPage('viz',this)"><i class="ti ti-chart-bar" aria-hidden="true"></i> Data Visualization</div>
+    <div class="nav-item" onclick="showPage('preprocess',this)"><i class="ti ti-settings" aria-hidden="true"></i> Preprocessing</div>
+    <div class="nav-item" onclick="showPage('balance',this)"><i class="ti ti-adjustments" aria-hidden="true"></i> Data Balancing</div>
+    <div class="nav-item" onclick="showPage('detect',this)"><i class="ti ti-shield" aria-hidden="true"></i> Intrusion Detection</div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <div class="avatar">M</div>
+      <button class="logout-btn">Logout</button>
+    </div>
+    <div class="content">
+
+      <!-- HOME -->
+      <div class="page active" id="page-home">
+        <div id="home-locked" class="locked-screen">
+          <div class="lock-icon"><i class="ti ti-lock" aria-hidden="true"></i></div>
+          <div class="lock-title">No data loaded</div>
+          <div class="lock-sub">Upload a dataset file in the Intrusion Detection page to view results here.</div>
+          <button class="go-btn" onclick="goToUpload()">Go to Upload</button>
+        </div>
+        <div id="home-data" style="display:none">
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label">Overall accuracy</div><div class="metric-val">90.20%</div><div class="metric-sub">1000 samples</div></div>
+            <div class="metric-card"><div class="metric-label">Total anomalies</div><div class="metric-val">100</div><div class="metric-sub">Detected by GAN</div></div>
+            <div class="metric-card"><div class="metric-label">True negatives</div><div class="metric-val">900</div><div class="metric-sub">Correctly normal</div></div>
+            <div class="metric-card"><div class="metric-label">False positives</div><div class="metric-val">100</div><div class="metric-sub">Misclassified</div></div>
+          </div>
+          <div class="two-col">
+            <div class="rcard">
+              <div class="rcard-title">Training accuracy over epochs</div>
+              <div style="position:relative;height:190px"><canvas id="trainChart" role="img" aria-label="Training accuracy over 200 epochs"></canvas></div>
+            </div>
+            <div class="rcard">
+              <div class="rcard-title">GAN losses over epochs</div>
+              <div style="position:relative;height:190px"><canvas id="lossChart" role="img" aria-label="GAN discriminator and generator loss"></canvas></div>
+            </div>
+          </div>
+          <div class="sec-label">Attack type distribution</div>
+          <div class="attack-row">
+            <div class="acard"><div class="atype">Attack type 0</div><div class="acount">516</div><div class="abar-bg"><div style="height:3px;background:#185FA5;width:100%;border-radius:2px"></div></div></div>
+            <div class="acard"><div class="atype">Attack type 1</div><div class="acount">380</div><div class="abar-bg"><div style="height:3px;background:#0F6E56;width:74%;border-radius:2px"></div></div></div>
+            <div class="acard"><div class="atype">Attack type 2</div><div class="acount">13</div><div class="abar-bg"><div style="height:3px;background:#854F0B;width:3%;border-radius:2px"></div></div></div>
+            <div class="acard"><div class="atype">Attack type 3</div><div class="acount">91</div><div class="abar-bg"><div style="height:3px;background:#993C1D;width:18%;border-radius:2px"></div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATA VISUALIZATION -->
+      <div class="page" id="page-viz">
+        <div id="viz-locked" class="locked-screen">
+          <div class="lock-icon"><i class="ti ti-lock" aria-hidden="true"></i></div>
+          <div class="lock-title">No data loaded</div>
+          <div class="lock-sub">Upload a dataset file to view visualizations.</div>
+          <button class="go-btn" onclick="goToUpload()">Go to Upload</button>
+        </div>
+        <div id="viz-data" style="display:none">
+          <div class="two-col" style="margin-bottom:16px">
+            <div class="rcard" style="padding:18px 20px">
+              <div class="rcard-title">Peak test accuracy</div>
+              <div class="metric-val" style="font-size:28px;color:#1d9e75">100.0%</div>
+              <div class="metric-sub">Highest validation score across epochs</div>
+            </div>
+            <div class="rcard" style="padding:18px 20px">
+              <div class="rcard-title">Most frequent attack</div>
+              <div class="metric-val" style="font-size:28px;color:#185fa5">Attack type 0</div>
+              <div class="metric-sub">516 anomaly samples detected</div>
+            </div>
+          </div>
+          <div class="rcard" style="margin-bottom:14px">
+            <div class="rcard-title">Train vs test accuracy at key epochs</div>
+            <div style="display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--color-text-secondary)">
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#378ADD;display:inline-block"></span>Train acc</span>
+              <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#1D9E75;display:inline-block"></span>Test acc</span>
+            </div>
+            <div style="position:relative;height:260px"><canvas id="accCompChart" role="img" aria-label="Train vs test accuracy grouped bar chart"></canvas></div>
+          </div>
+          <div class="rcard">
+            <div class="rcard-title">Anomaly count by attack type</div>
+            <div style="position:relative;height:220px"><canvas id="anomalyChart" role="img" aria-label="Anomaly count bar chart by attack type"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREPROCESSING -->
+      <div class="page" id="page-preprocess">
+        <div id="pre-locked" class="locked-screen">
+          <div class="lock-icon"><i class="ti ti-lock" aria-hidden="true"></i></div>
+          <div class="lock-title">No data loaded</div>
+          <div class="lock-sub">Upload a dataset file to view preprocessing details.</div>
+          <button class="go-btn" onclick="goToUpload()">Go to Upload</button>
+        </div>
+        <div id="pre-data" style="display:none">
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label">Dataset</div><div class="metric-val" style="font-size:13px;margin-top:4px" id="pre-filename">—</div></div>
+            <div class="metric-card"><div class="metric-label">Rows loaded</div><div class="metric-val">1,000</div></div>
+            <div class="metric-card"><div class="metric-label">Train samples</div><div class="metric-val">800</div><div class="metric-sub">80% split</div></div>
+            <div class="metric-card"><div class="metric-label">Test samples</div><div class="metric-val">200</div><div class="metric-sub">20% split</div></div>
+          </div>
+          <div class="rcard">
+            <div class="rcard-title">Pipeline steps</div>
+            <div class="prog-row"><span class="prog-lbl">Data loading</span><div class="prog-bg"><div class="prog-fill" style="width:100%;background:#1D9E75"></div></div><span class="prog-done">Done</span></div>
+            <div class="prog-row"><span class="prog-lbl">Categorical encoding</span><div class="prog-bg"><div class="prog-fill" style="width:100%;background:#1D9E75"></div></div><span class="prog-done">Done</span></div>
+            <div class="prog-row"><span class="prog-lbl">Feature scaling</span><div class="prog-bg"><div class="prog-fill" style="width:100%;background:#1D9E75"></div></div><span class="prog-done">Done</span></div>
+            <div class="prog-row"><span class="prog-lbl">Train/test split</span><div class="prog-bg"><div class="prog-fill" style="width:100%;background:#1D9E75"></div></div><span class="prog-done">Done</span></div>
+          </div>
+          <div class="two-col">
+            <div class="rcard">
+              <div class="rcard-title">Encoded columns</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span class="badge badge-blue">protocol_type</span>
+                <span class="badge badge-blue">service</span>
+                <span class="badge badge-blue">flag</span>
+                <span class="badge badge-blue">label</span>
+              </div>
+            </div>
+            <div class="rcard">
+              <div class="rcard-title">Scaler</div>
+              <span class="badge badge-amber">StandardScaler — sklearn</span>
+              <div style="margin-top:10px;font-size:12px;color:var(--color-text-secondary)">Applied to all non-categorical columns</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATA BALANCING -->
+      <div class="page" id="page-balance">
+        <div id="bal-locked" class="locked-screen">
+          <div class="lock-icon"><i class="ti ti-lock" aria-hidden="true"></i></div>
+          <div class="lock-title">No data loaded</div>
+          <div class="lock-sub">Upload a dataset file to view GAN balancing details.</div>
+          <button class="go-btn" onclick="goToUpload()">Go to Upload</button>
+        </div>
+        <div id="bal-data" style="display:none">
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label">Latent dim</div><div class="metric-val">20</div></div>
+            <div class="metric-card"><div class="metric-label">Batch size</div><div class="metric-val">512</div></div>
+            <div class="metric-card"><div class="metric-label">Epochs</div><div class="metric-val">200</div></div>
+            <div class="metric-card"><div class="metric-label">Loss weight</div><div class="metric-val">0.75</div></div>
+          </div>
+          <div class="two-col">
+            <div class="rcard">
+              <div class="rcard-title">Generator architecture</div>
+              <div style="font-size:12px;color:var(--color-text-secondary);line-height:2">
+                Noise(20) → Dense(256, ReLU) → Dropout(0.4)<br>
+                → Dense(128, ReLU) → Dropout(0.4)<br>
+                → Dense(64, ReLU) → Dropout(0.4)<br>
+                → Dense(output_dim, Tanh)
+              </div>
+              <div style="margin-top:10px"><span class="badge badge-green">Saved: generator_model.h5</span></div>
+            </div>
+            <div class="rcard">
+              <div class="rcard-title">Discriminator architecture</div>
+              <div style="font-size:12px;color:var(--color-text-secondary);line-height:2">
+                Input → Dense(256, ReLU) → Dropout(0.4)<br>
+                → Dense(128, ReLU) → Dropout(0.4)<br>
+                → Dense(64, ReLU) → Dropout(0.4)<br>
+                → Dense(1, Sigmoid)
+              </div>
+              <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+                <span class="badge badge-blue">binary_crossentropy</span>
+                <span class="badge badge-amber">Adam lr=0.0002</span>
+              </div>
+            </div>
+          </div>
+          <div class="rcard">
+            <div class="rcard-title">Final training metrics</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:12px">
+              <div><div style="color:var(--color-text-secondary);margin-bottom:3px">Final disc. loss</div><div style="font-weight:500;color:var(--color-text-primary)">0.0934</div></div>
+              <div><div style="color:var(--color-text-secondary);margin-bottom:3px">Final gen. loss</div><div style="font-weight:500;color:var(--color-text-primary)">1.4621</div></div>
+              <div><div style="color:var(--color-text-secondary);margin-bottom:3px">Best train acc</div><div style="font-weight:500;color:var(--color-text-primary)">99.85%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INTRUSION DETECTION -->
+      <div class="page" id="page-detect">
+        <div id="upload-screen">
+          <div style="max-width:420px;margin:40px auto">
+            <div class="rcard">
+              <div class="rcard-title">File Upload</div>
+              <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                <div class="drop-icon"><i class="ti ti-upload" aria-hidden="true"></i></div>
+                <div class="drop-text">Drag files here or <span class="browse-link">Browse</span></div>
+              </div>
+              <input type="file" id="fileInput" style="display:none">
+              <div id="file-row" style="display:none" class="file-row">
+                <i class="ti ti-file" aria-hidden="true"></i>
+                <span class="file-name" id="file-name-text"></span>
+                <span style="cursor:pointer;color:var(--color-text-tertiary);font-size:16px" onclick="removeFile()"><i class="ti ti-x"></i></span>
+              </div>
+              <button class="done-btn" id="done-btn" onclick="runAnalysis()" disabled>DONE</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="processing-screen" style="display:none">
+          <div style="max-width:420px;margin:40px auto">
+            <div class="rcard" style="text-align:center;padding:32px">
+              <div class="spinner"></div>
+              <div style="font-size:13px;color:var(--color-text-secondary)" id="proc-msg">Loading dataset…</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="results-screen" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <div class="file-badge"><i class="ti ti-file-check" aria-hidden="true"></i><span id="result-filename">file.csv</span></div>
+            <button class="reset-btn" onclick="resetUpload()"><i class="ti ti-refresh" style="font-size:13px;vertical-align:-1px;margin-right:4px" aria-hidden="true"></i>Upload another</button>
+          </div>
+          <div class="metric-grid">
+            <div class="metric-card"><div class="metric-label">Accuracy</div><div class="metric-val">90.20%</div><div class="metric-sub">1000 samples</div></div>
+            <div class="metric-card"><div class="metric-label">True negatives</div><div class="metric-val">900</div></div>
+            <div class="metric-card"><div class="metric-label">False positives</div><div class="metric-val">100</div></div>
+            <div class="metric-card"><div class="metric-label">Anomalies</div><div class="metric-val">100</div></div>
+          </div>
+          <div class="attack-row">
+            <div class="acard"><div class="atype">Attack type 0</div><div class="acount">516</div><div class="abar-bg"><div style="height:3px;background:#185FA5;width:100%;border-radius:2px"></div></div></div>
+            <div class="acard"><div class="atype">Attack type 1</div><div class="acount">380</div><div class="abar-bg"><div style="height:3px;background:#0F6E56;width:74%;border-radius:2px"></div></div></div>
+            <div class="acard"><div class="atype">Attack type 2</div><div class="acount">13</div><div class="abar-bg"><div style="height:3px;background:#854F0B;width:3%;border-radius:2px"></div></div></div>
+            <div class="acard"><div class="atype">Attack type 3</div><div class="acount">91</div><div class="abar-bg"><div style="height:3px;background:#993C1D;width:18%;border-radius:2px"></div></div></div>
+          </div>
+          <div class="two-col">
+            <div class="rcard">
+              <div class="rcard-title">Confusion matrix</div>
+              <div class="cm-grid">
+                <div class="cm-cell" style="background:#EAF3DE"><div class="cm-lbl" style="color:#3B6D11">True negative</div><div class="cm-num" style="color:#27500A">900</div></div>
+                <div class="cm-cell" style="background:#FAEEDA"><div class="cm-lbl" style="color:#854F0B">False positive</div><div class="cm-num" style="color:#633806">100</div></div>
+                <div class="cm-cell" style="background:#E6F1FB"><div class="cm-lbl" style="color:#185FA5">False negative</div><div class="cm-num" style="color:#0C447C">0</div></div>
+                <div class="cm-cell" style="background:#E6F1FB"><div class="cm-lbl" style="color:#185FA5">True positive</div><div class="cm-num" style="color:#0C447C">0</div></div>
+              </div>
+            </div>
+            <div class="rcard">
+              <div class="rcard-title">Classification report</div>
+              <table class="rtable">
+                <thead><tr><th>Class</th><th>Prec.</th><th>Recall</th><th>F1</th><th>Supp.</th></tr></thead>
+                <tbody>
+                  <tr><td>Normal</td><td>1.00</td><td>0.90</td><td>0.95</td><td>1000</td></tr>
+                  <tr><td>Anomaly</td><td>0.00</td><td>0.00</td><td>0.00</td><td>0</td></tr>
+                  <tr style="font-weight:500"><td>Accuracy</td><td>—</td><td>—</td><td>0.90</td><td>1000</td></tr>
+                  <tr><td>Macro avg</td><td>0.50</td><td>0.45</td><td>0.47</td><td>1000</td></tr>
+                  <tr><td>Wtd avg</td><td>1.00</td><td>0.90</td><td>0.95</td><td>1000</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="rcard">
+            <div class="rcard-title">Sample anomaly indices (first 30)</div>
+            <div style="font-size:11px;color:var(--color-text-secondary);line-height:2;word-break:break-all">146, 159, 173, 179, 190, 193, 201, 212, 214, 215, 221, 227, 235, 237, 254, 287, 292, 301, 308, 312, 342, 348, 362, 373, 375, 381, 399, 405, 411, 414 …</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let dataUnlocked = false;
+let uploadedFilename = '';
+const chartInstances = {};
+
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  if (id === 'home') renderHome();
+  if (id === 'viz') renderViz();
+  if (id === 'preprocess') renderPre();
+  if (id === 'balance') renderBal();
+}
+
+function goToUpload() {
+  const navItems = document.querySelectorAll('.nav-item');
+  showPage('detect', navItems[4]);
+}
+
+function renderHome() {
+  document.getElementById('home-locked').style.display = dataUnlocked ? 'none' : 'flex';
+  document.getElementById('home-data').style.display = dataUnlocked ? 'block' : 'none';
+  if (dataUnlocked) initHomeCharts();
+}
+function renderViz() {
+  document.getElementById('viz-locked').style.display = dataUnlocked ? 'none' : 'flex';
+  document.getElementById('viz-data').style.display = dataUnlocked ? 'block' : 'none';
+  if (dataUnlocked) initVizCharts();
+}
+function renderPre() {
+  document.getElementById('pre-locked').style.display = dataUnlocked ? 'none' : 'flex';
+  document.getElementById('pre-data').style.display = dataUnlocked ? 'block' : 'none';
+  if (dataUnlocked) document.getElementById('pre-filename').textContent = uploadedFilename;
+}
+function renderBal() {
+  document.getElementById('bal-locked').style.display = dataUnlocked ? 'none' : 'flex';
+  document.getElementById('bal-data').style.display = dataUnlocked ? 'block' : 'none';
+}
+
+const epochs = [0,10,20,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100,110,120,130,140,150,160,165,170,175,180,185,190,195];
+const trainAcc = [93.9,93.9,93.9,97.9,97.9,93.9,90.6,92.5,96.3,98.2,99.2,99.3,99.2,98.2,98.2,94.2,85.6,93.9,96.9,98.5,99.2,99.4,99.4,98.8,98.9,98.9,99.7,99.3,99.7,99.8,99.6];
+const discLoss = [0.666,0.55,0.50,0.45,0.42,0.389,0.38,0.386,0.37,0.366,0.35,0.339,0.33,0.286,0.29,0.321,0.30,0.28,0.25,0.23,0.21,0.19,0.17,0.199,0.18,0.151,0.14,0.111,0.10,0.093,0.09];
+const genLoss  = [0.47,0.50,0.53,0.52,0.51,0.503,0.51,0.529,0.56,0.587,0.60,0.616,0.63,0.700,0.70,0.656,0.67,0.65,0.73,0.76,0.85,1.00,1.10,1.202,1.25,1.305,1.36,1.485,1.45,1.462,1.47];
+
+function initHomeCharts() {
+  if (chartInstances['train']) return;
+  chartInstances['train'] = new Chart(document.getElementById('trainChart'), {
+    type: 'line',
+    data: { labels: epochs, datasets: [{ label: 'Train acc', data: trainAcc, borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.07)', fill: true, tension: 0.3, pointRadius: 0, borderWidth: 1.5 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 }, color: '#888', maxTicksLimit: 7 }, grid: { color: 'rgba(128,128,128,0.1)' } }, y: { min: 80, max: 102, ticks: { font: { size: 10 }, color: '#888', callback: v => v + '%' }, grid: { color: 'rgba(128,128,128,0.1)' } } } }
+  });
+  chartInstances['loss'] = new Chart(document.getElementById('lossChart'), {
+    type: 'line',
+    data: { labels: epochs, datasets: [
+      { label: 'Discriminator', data: discLoss, borderColor: '#D85A30', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5 },
+      { label: 'Generator', data: genLoss, borderColor: '#185FA5', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [4,3] }
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 }, color: '#888', maxTicksLimit: 7 }, grid: { color: 'rgba(128,128,128,0.1)' } }, y: { ticks: { font: { size: 10 }, color: '#888' }, grid: { color: 'rgba(128,128,128,0.1)' } } } }
+  });
+}
+
+function initVizCharts() {
+  if (chartInstances['accComp']) return;
+  const keyEp = [140,150,160,165,170,175,180,185,190,195];
+  const tr = [99.4,99.4,98.8,98.9,98.9,99.7,99.3,99.7,99.8,99.6];
+  const te = [99.7,99.7,99.6,99.4,98.9,98.3,100,100,100,100];
+  chartInstances['accComp'] = new Chart(document.getElementById('accCompChart'), {
+    type: 'bar',
+    data: { labels: keyEp.map(e => 'Ep '+e), datasets: [
+      { label: 'Train acc', data: tr, backgroundColor: '#378ADD', borderRadius: 10, borderSkipped: false },
+      { label: 'Test acc', data: te, backgroundColor: '#1D9E75', borderRadius: 10, borderSkipped: false }
+    ]},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 8, bottom: 8 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          padding: 10,
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + ctx.formattedValue + '%'
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 10 }, color: '#6B7A92', autoSkip: false, maxRotation: 40 },
+          grid: { display: false }
+        },
+        y: {
+          min: 96,
+          max: 101,
+          ticks: { font: { size: 10 }, color: '#6B7A92', callback: v => v + '%' },
+          grid: { color: 'rgba(128,128,128,0.1)' }
+        }
+      }
+    }
+  });
+  chartInstances['anomaly'] = new Chart(document.getElementById('anomalyChart'), {
+    type: 'bar',
+    data: { labels: ['Type 0','Type 1','Type 2','Type 3'], datasets: [{ label: 'Count', data: [516,380,13,91], backgroundColor: ['#185FA5','#0F6E56','#854F0B','#993C1D'], borderRadius: 10, borderSkipped: false }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 10, bottom: 6 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          padding: 10,
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + ctx.formattedValue
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 11 }, color: '#6B7A92' },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { font: { size: 10 }, color: '#6B7A92' },
+          grid: { color: 'rgba(128,128,128,0.1)' }
+        }
+      }
+    }
+  });
+}
+
+document.getElementById('fileInput').addEventListener('change', function () {
+  if (this.files.length) selectFile(this.files[0]);
+});
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if (e.dataTransfer.files.length) selectFile(e.dataTransfer.files[0]); });
+
+function selectFile(f) {
+  document.getElementById('file-row').style.display = 'flex';
+  document.getElementById('file-name-text').textContent = f.name;
+  const btn = document.getElementById('done-btn');
+  btn.disabled = false; btn.classList.add('ready'); btn._fname = f.name;
+}
+function removeFile() {
+  document.getElementById('file-row').style.display = 'none';
+  document.getElementById('file-name-text').textContent = '';
+  const btn = document.getElementById('done-btn');
+  btn.disabled = true; btn.classList.remove('ready'); btn._fname = '';
+  document.getElementById('fileInput').value = '';
+}
+
+const procSteps = ['Loading dataset…','Encoding categorical features…','Scaling features…','Training GAN model…','Running anomaly detection…','Calculating scores…'];
+
+function runAnalysis() {
+  const fname = document.getElementById('done-btn')._fname || 'dataset.csv';
+  document.getElementById('upload-screen').style.display = 'none';
+  document.getElementById('processing-screen').style.display = 'block';
+  let i = 0;
+  const msg = document.getElementById('proc-msg');
+  msg.textContent = procSteps[0];
+  const iv = setInterval(() => {
+    i++;
+    if (i < procSteps.length) { msg.textContent = procSteps[i]; }
+    else {
+      clearInterval(iv);
+      uploadedFilename = fname;
+      dataUnlocked = true;
+      document.getElementById('processing-screen').style.display = 'none';
+      document.getElementById('result-filename').textContent = fname;
+      document.getElementById('results-screen').style.display = 'block';
+    }
+  }, 600);
+}
+
+function resetUpload() {
+  dataUnlocked = false;
+  uploadedFilename = '';
+  ['train','loss','accComp','anomaly'].forEach(k => { if(chartInstances[k]){ chartInstances[k].destroy(); delete chartInstances[k]; } });
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('upload-screen').style.display = 'block';
+  removeFile();
+  document.getElementById('home-locked').style.display = 'flex';
+  document.getElementById('home-data').style.display = 'none';
+  document.getElementById('viz-locked').style.display = 'flex';
+  document.getElementById('viz-data').style.display = 'none';
+  document.getElementById('pre-locked').style.display = 'flex';
+  document.getElementById('pre-data').style.display = 'none';
+  document.getElementById('bal-locked').style.display = 'flex';
+  document.getElementById('bal-data').style.display = 'none';
+}
+</script>
+</body>
+</html>
